@@ -1,0 +1,9 @@
+version: '3.9'
+services:
+
+  planner:
+    image: hello:second
+    build:
+      context: services/Planner
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
