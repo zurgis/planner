@@ -2,7 +2,7 @@ version: '3.9'
 services:
 
   planner:
-    image: hello:second
+    image: services:planner
     build:
       context: services/Planner
       args:
