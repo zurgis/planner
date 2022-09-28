@@ -2,8 +2,8 @@ version: '3.9'
 services:
 
   planner:
-    image: services:planner
+    image: services:gateway
     build:
-      context: services/Planner
+      context: services/gateway
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
