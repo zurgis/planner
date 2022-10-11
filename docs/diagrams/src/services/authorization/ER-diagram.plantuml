@@ -1,0 +1,41 @@
+@startuml
+object full_name {
+  * first_name : text
+  * last_name: text
+  middle_name: text
+}
+
+entity User {
+  * id : number <<generated>>
+  __
+  * email : text
+  * full_name : full_name
+  * password : text
+  * role_id : number <<FK>>
+  * is_active : boolean
+  direction_id : number <<FK>>
+}
+
+entity Role {
+  * id : number <<generated>>
+  __
+  * name : text
+  * permission_id : number <<FK>>
+}
+
+entity Permission {
+  * id : number <<generated>>
+  __
+  * name : text
+}
+
+entity Direction {
+  * id : number <<generated>>
+  __
+  * name : text
+}
+
+User ||--|| Role
+User ||--o| Direction
+Role ||--|{ Permission
+@enduml
