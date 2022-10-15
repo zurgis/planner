@@ -1,8 +1,43 @@
-version: '3.9'
+version: "3.9"
+
 services:
-  planner:
+  gateway:
     image: services:gateway
     build:
       context: services/gateway
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
+
+  authorization:
+    image: services:authorization
+    build:
+      context: services/authorization
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
+  postgres:
+    image: postgres:14.5
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=planner_user
+      - POSTGRES_PASSWORD=planner_password
+      - POSTGRES_DB=planner_users
+    volumes:
+      - postgres:/var/lib/postgresql/data/
+    
+  pgadmin:
+    image: dpage/pgadmin4:6.14
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=planner@planner.planner
+      - PGADMIN_DEFAULT_PASSWORD=planner
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres:
+  pgadmin:
