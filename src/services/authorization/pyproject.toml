@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "gateway"
+name = "authorization"
 version = "0.1.0"
 description = ""
 authors = ["Dormidontov A.A <you@example.com>"]
