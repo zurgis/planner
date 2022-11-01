@@ -26,4 +26,6 @@ jobs:
 
       - name: Run Tests
         run: |
-          pytest
+          pytest authorization && 
+          pytest gateway
+        working-directory: src/services
