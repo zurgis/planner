@@ -1,0 +1,5 @@
+{
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}/src/services/authorization:${workspaceFolder}/src/services/base:${workspaceFolder}/src/services/core:${workspaceFolder}/src/services/gateway"
+    }
+}
