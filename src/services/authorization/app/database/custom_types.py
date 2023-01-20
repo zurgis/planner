@@ -1,5 +1,6 @@
 from typing import List, Tuple
 
+from psycopg2.extras import register_composite
 from sqlalchemy import MetaData, event
 from sqlalchemy.exc import InterfaceError
 from sqlalchemy.ext.compiler import compiles
@@ -23,7 +24,6 @@ class CompositeType(UserDefinedType):
     """
 
     def __init__(self, name: str, columns: List | Tuple) -> None:
-        # TODO: maybe need delete
         if engine.dialect.driver != "psycopg2":
             raise InterfaceError(
                 None,
@@ -35,7 +35,7 @@ class CompositeType(UserDefinedType):
         self.columns = columns
 
         event.listen(MetaData, "before_create", self.before_create)
-        event.listen(MetaData, "after_drop", self.after_drop)
+        # event.listen(MetaData, "after_drop", self.after_drop)
 
     @property
     def python_type(self):
@@ -44,7 +44,21 @@ class CompositeType(UserDefinedType):
     def get_col_spec(self):
         return self.name
 
-    def bind_processor(self):
+    def bind_processor(self, dialect):
+        def process(value):
+            if value is None:
+                return None
+
+            if isinstance(value, dict):
+                value = tuple(value[column.name] for column in self.columns)
+            else:
+                value = tuple(value[index] for index in range(len(self.columns)))
+
+            return value
+
+        return process
+
+    def result_processor(self, dialect, coltype):
         def process(value):
             if value is None:
                 return None
@@ -53,18 +67,32 @@ class CompositeType(UserDefinedType):
 
         return process
 
-    def result_processor(self):
-        def process(value):
-            if value is None:
-                return None
-
-        return process
-
     def create(self, bind=None, checkfirst=False):
         bind.execute(CreateCompositeType(self))
 
     def before_create(self, target, connection, **kwargs):
         self.create(connection)
+
+        register_composite(
+            name=self.name, conn_or_curs=connection.connection.connection, globally=True
+        )
+
+        # from collections import namedtuple
+        # tuple_ = namedtuple(self.name, [column.name for column in self.columns])
+
+        # type_ = register_composite(name=self.name, conn_or_curs=connection.connection.connection, globally=True).type
+
+        # def adapt_composite(composite_type):
+        #     adapted = [adapt(getattr(composite_type, column.name)) for column in composite_type.columns]
+
+        #     # return AsIs(f"({', '.join(values)})::{composite_type.name}")
+        #     return AsIs("(%s)::full_name" % (
+        #         ", ".join([
+        #                     adapt(getattr(composite_type, field)).getquoted() for field in composite_type._fields
+        #                 ])
+        #     ))
+
+        # register_adapter(type_, adapt_composite)
 
     def drop(self, bind=None, checkfirst=False):
         bind.execute(DropCompositeType(self))

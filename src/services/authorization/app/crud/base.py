@@ -1,7 +1,9 @@
 from typing import TypeVar
 from uuid import UUID
+
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
 from app.database.base_class import Base
 
 
@@ -17,11 +19,11 @@ class CRUDBase:
     def get(self, db: Session, *, id: int | UUID) -> Model:
         return db.query(self.model).filter(self.model.id == id).first()
 
-    def get_multi(self, db: Session, *, skip = 0, limit = 100) -> Model:
+    def get_multi(self, db: Session, *, skip=0, limit=100) -> Model:
         return db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, db: Session, *, obj_in: CreateSchema) -> Model:
-        obj_in_data = obj_in.json()
+        obj_in_data = obj_in.dict()
         db_obj = self.model(**obj_in_data)
 
         db.add(db_obj)
@@ -48,8 +50,8 @@ class CRUDBase:
 
     def remove(self, db: Session, *, id: int | UUID) -> Model:
         obj = db.query(self.model).get(id)
-        
+
         db.delete(obj)
         db.commit()
-        
+
         return obj
