@@ -10,11 +10,21 @@ from sqlalchemy.types import UserDefinedType
 from app.database.connection import engine
 
 
-# TODO: https://pganalyze.com/blog/custom-postgres-data-types-django-python
-# TODO: https://schinckel.net/2014/09/24/using-postgres-composite-types-in-django/
-# TODO: https://docs.sqlalchemy.org/en/14/core/ddl.html#sqlalchemy.schema.DDLElement
+class CreateCompositeType(_CreateDropBase):
+    """Represent a CREATE TYPE statement."""
+
+    __visit_name__ = "create_composite_type"
 
 
+class DropCompositeType(_CreateDropBase):
+    """Represent a DROP TYPE statement."""
+
+    __visit_name__ = "drop_composite_type"
+
+
+# TODO: add filter by composite type
+# TODO: add creation of composite type in composite type
+# TODO: add checks composite type in other tables
 class CompositeType(UserDefinedType):
     """
     :param name:
@@ -35,7 +45,7 @@ class CompositeType(UserDefinedType):
         self.columns = columns
 
         event.listen(MetaData, "before_create", self.before_create)
-        # event.listen(MetaData, "after_drop", self.after_drop)
+        event.listen(MetaData, "after_drop", self.after_drop)
 
     @property
     def python_type(self):
@@ -67,8 +77,9 @@ class CompositeType(UserDefinedType):
 
         return process
 
-    def create(self, bind=None, checkfirst=False):
-        bind.execute(CreateCompositeType(self))
+    def create(self, bind=None, checkfirst=True):
+        if checkfirst and not bind.dialect.has_type(bind, self.name):
+            bind.execute(CreateCompositeType(self))
 
     def before_create(self, target, connection, **kwargs):
         self.create(connection)
@@ -77,59 +88,26 @@ class CompositeType(UserDefinedType):
             name=self.name, conn_or_curs=connection.connection.connection, globally=True
         )
 
-        # from collections import namedtuple
-        # tuple_ = namedtuple(self.name, [column.name for column in self.columns])
-
-        # type_ = register_composite(name=self.name, conn_or_curs=connection.connection.connection, globally=True).type
-
-        # def adapt_composite(composite_type):
-        #     adapted = [adapt(getattr(composite_type, column.name)) for column in composite_type.columns]
-
-        #     # return AsIs(f"({', '.join(values)})::{composite_type.name}")
-        #     return AsIs("(%s)::full_name" % (
-        #         ", ".join([
-        #                     adapt(getattr(composite_type, field)).getquoted() for field in composite_type._fields
-        #                 ])
-        #     ))
-
-        # register_adapter(type_, adapt_composite)
-
-    def drop(self, bind=None, checkfirst=False):
-        bind.execute(DropCompositeType(self))
+    def drop(self, bind=None, checkfirst=True):
+        if checkfirst and bind.dialect.has_type(bind, self.name):
+            bind.execute(DropCompositeType(self))
 
     def after_drop(self, target, connection, **kwargs):
         self.drop(connection)
 
+    @compiles(CreateCompositeType)
+    def visit_create_composite_type(create, compiler, **kwargs):
+        type_ = create.element
 
-class CreateCompositeType(_CreateDropBase):
-    """Represent a CREATE TYPE statement."""
+        fields = ", ".join(
+            f"{compiler.preparer.quote(column.name)} {compiler.type_compiler.process(column.type)}"
+            for column in type_.columns
+        )
 
-    __visit_name__ = "create_composite_type"
+        return f"CREATE TYPE {compiler.preparer.quote(type_.name)} AS ({fields})"
 
+    @compiles(DropCompositeType)
+    def visit_drop_composite_type(drop, compiler, **kwargs):
+        type_ = drop.element
 
-class DropCompositeType(_CreateDropBase):
-    """Represent a DROP TYPE statement."""
-
-    __visit_name__ = "drop_composite_type"
-
-
-@compiles(CreateCompositeType)
-def visit_create_composite_type(create, compiler, **kwargs):
-    type_ = create.element
-
-    fields = ", ".join(
-        f"{compiler.preparer.quote(column.name)} {compiler.type_compiler.process(column.type)}"
-        for column in type_.columns
-    )
-
-    return f"CREATE TYPE {compiler.preparer.quote(type_.name)} AS ({fields})"
-
-
-@compiles(DropCompositeType)
-def visit_drop_composite_type(drop, compiler, **kwargs):
-    type_ = drop.element
-
-    return f"DROP TYPE {compiler.preparer.quote(type_.name)}"
-
-
-# TODO: IdentifierPreparer: https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/sql/compiler.py
+        return f"DROP TYPE {compiler.preparer.quote(type_.name)}"
