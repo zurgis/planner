@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -12,14 +12,14 @@ CreateSchema = TypeVar("CreateSchema", bound=BaseModel)
 UpdateSchema = TypeVar("UpdateSchema", bound=BaseModel)
 
 
-class CRUDBase:
+class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
     def __init__(self, model: type[Model]) -> None:
         self.model = model
 
-    def get(self, db: Session, *, id: int | UUID) -> Model:
+    def get(self, db: Session, *, id: int | UUID) -> Model | None:
         return db.query(self.model).filter(self.model.id == id).first()
 
-    def get_multi(self, db: Session, *, skip=0, limit=100) -> Model:
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> list[Model]:
         return db.query(self.model).offset(skip).limit(limit).all()
 
     def create(self, db: Session, *, obj_in: CreateSchema) -> Model:
@@ -38,7 +38,7 @@ class CRUDBase:
         else:
             updated_data = obj_in.dict(exclude_unset=True)
 
-        for field in db_obj._fields:
+        for field in db_obj._fields:  # type: ignore
             if field in updated_data:
                 setattr(db_obj, field, updated_data[field])
 

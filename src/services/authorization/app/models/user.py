@@ -8,7 +8,7 @@ from app.database.base_class import Base
 from app.database.custom_types import CompositeType
 
 
-regex_email = "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$"
+regex_email = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$"
 
 
 class User(Base):
