@@ -1,10 +1,13 @@
-from typing import List, Tuple
+from collections.abc import Callable, Sequence
+from typing import NamedTuple
 
 from psycopg2.extras import register_composite
 from sqlalchemy import MetaData, event
+from sqlalchemy.engine import Connection, Dialect
 from sqlalchemy.exc import InterfaceError
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import _CreateDropBase
+from sqlalchemy.sql.compiler import DDLCompiler
 from sqlalchemy.types import UserDefinedType
 
 from app.database.connection import engine
@@ -33,7 +36,7 @@ class CompositeType(UserDefinedType):
         List of columns that this composite type consists of
     """
 
-    def __init__(self, name: str, columns: List | Tuple) -> None:
+    def __init__(self, name: str, columns: list | tuple) -> None:
         if engine.dialect.driver != "psycopg2":
             raise InterfaceError(
                 None,
@@ -48,14 +51,14 @@ class CompositeType(UserDefinedType):
         event.listen(MetaData, "after_drop", self.after_drop)
 
     @property
-    def python_type(self):
+    def python_type(self) -> type:
         return tuple
 
-    def get_col_spec(self):
+    def get_col_spec(self) -> str:
         return self.name
 
-    def bind_processor(self, dialect):
-        def process(value):
+    def bind_processor(self, dialect: Dialect) -> Callable[[Sequence], tuple]:
+        def process(value: Sequence) -> tuple:
             if value is None:
                 return None
 
@@ -68,8 +71,10 @@ class CompositeType(UserDefinedType):
 
         return process
 
-    def result_processor(self, dialect, coltype):
-        def process(value):
+    def result_processor(
+        self, dialect: Dialect, coltype: int
+    ) -> Callable[[NamedTuple], NamedTuple]:
+        def process(value: NamedTuple) -> NamedTuple:
             if value is None:
                 return None
 
@@ -77,37 +82,43 @@ class CompositeType(UserDefinedType):
 
         return process
 
-    def create(self, bind=None, checkfirst=True):
+    def create(self, bind: Connection, checkfirst: bool = True) -> None:
         if checkfirst and not bind.dialect.has_type(bind, self.name):
             bind.execute(CreateCompositeType(self))
 
-    def before_create(self, target, connection, **kwargs):
+    def before_create(
+        self, target: MetaData, connection: Connection, **kwargs: dict
+    ) -> None:
         self.create(connection)
 
         register_composite(
             name=self.name, conn_or_curs=connection.connection.connection, globally=True
         )
 
-    def drop(self, bind=None, checkfirst=True):
+    def drop(self, bind: Connection, checkfirst: bool = True) -> None:
         if checkfirst and bind.dialect.has_type(bind, self.name):
             bind.execute(DropCompositeType(self))
 
-    def after_drop(self, target, connection, **kwargs):
+    def after_drop(
+        self, target: MetaData, connection: Connection, **kwargs: dict
+    ) -> None:
         self.drop(connection)
 
     @compiles(CreateCompositeType)
-    def visit_create_composite_type(create, compiler, **kwargs):
+    def visit_create_composite_type(
+        create, compiler: DDLCompiler, **kwargs: dict
+    ) -> str:
         type_ = create.element
 
         fields = ", ".join(
-            f"{compiler.preparer.quote(column.name)} {compiler.type_compiler.process(column.type)}"
+            f"{compiler.preparer.quote(column.name)} {compiler.type_compiler.process(column.type)}"  # noqa: E501, W505
             for column in type_.columns
         )
 
         return f"CREATE TYPE {compiler.preparer.quote(type_.name)} AS ({fields})"
 
     @compiles(DropCompositeType)
-    def visit_drop_composite_type(drop, compiler, **kwargs):
+    def visit_drop_composite_type(drop, compiler: DDLCompiler, **kwargs: dict) -> str:
         type_ = drop.element
 
         return f"DROP TYPE {compiler.preparer.quote(type_.name)}"

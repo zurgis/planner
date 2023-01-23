@@ -49,5 +49,5 @@ def init_database(request, connection, Base):
 @pytest.fixture(scope="session")
 def db(connection) -> Generator:
     Session = sessionmaker(bind=connection)
-    
+
     yield Session(future=True)
