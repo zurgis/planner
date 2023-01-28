@@ -21,7 +21,7 @@ def connection(engine) -> Generator:
     yield engine.connect()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def Base():
     @as_declarative()
     class Base:
