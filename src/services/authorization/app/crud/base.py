@@ -38,7 +38,7 @@ class CRUDBase(Generic[Model, CreateSchema, UpdateSchema]):
         else:
             updated_data = obj_in.dict(exclude_unset=True)
 
-        for field in db_obj._fields:  # type: ignore
+        for field in db_obj.__table__.c.keys():  # type: ignore
             if field in updated_data:
                 setattr(db_obj, field, updated_data[field])
 
