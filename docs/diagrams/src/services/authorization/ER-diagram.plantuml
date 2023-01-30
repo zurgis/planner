@@ -6,7 +6,7 @@ object full_name {
 }
 
 entity User {
-  * id : number <<generated>>
+  * id : uuid <<generated>>
   __
   * email : text
   * full_name : full_name
@@ -20,7 +20,6 @@ entity Role {
   * id : number <<generated>>
   __
   * name : text
-  * permission_id : number <<FK>>
 }
 
 entity Permission {
@@ -35,7 +34,15 @@ entity Direction {
   * name : text
 }
 
-User ||--|| Role
-User ||--o| Direction
-Role ||--|{ Permission
+entity Role_Permission {
+  * id: number <<generated>>
+  __
+  * role_id: number <<FK>>
+  * permission_id: number <<FK>>
+}
+
+User }|--|| Role
+User }|--o| Direction
+Role ||--|{ Role_Permission
+Permission ||--|{ Role_Permission
 @enduml

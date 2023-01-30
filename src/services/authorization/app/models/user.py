@@ -30,9 +30,7 @@ class User(Base):
     direction_id = Column(Integer, ForeignKey("direction.id"))
     is_active = Column(Boolean, nullable=False, default=True)
 
-    role = relationship("Role", back_populates="user")  # TODO: check this field
-    direction = relationship(
-        "Direction", back_populates="user"
-    )  # TODO: check this field
+    role = relationship("Role", back_populates="users")
+    direction = relationship("Direction", back_populates="users")
 
     __table_args__ = (CheckConstraint(f"email ~ '{regex_email}'", name="email"),)
