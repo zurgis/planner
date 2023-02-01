@@ -15,8 +15,8 @@ class RoleUpdate(BaseModel):
         orm_mode = True
 
 
-class CRUDPermission(CRUDBase[Role, RoleCreate, RoleUpdate]):
+class CRUDRole(CRUDBase[Role, RoleCreate, RoleUpdate]):
     ...
 
 
-role = CRUDPermission(Role)
+role = CRUDRole(Role)
