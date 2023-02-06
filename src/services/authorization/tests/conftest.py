@@ -2,7 +2,12 @@ from collections.abc import Generator
 
 import pytest
 from sqlalchemy import Column, Integer, create_engine
-from sqlalchemy.orm import as_declarative, declared_attr, sessionmaker
+from sqlalchemy.orm import (
+    as_declarative,
+    close_all_sessions,
+    declared_attr,
+    sessionmaker,
+)
 
 
 @pytest.fixture(scope="session")
@@ -41,6 +46,7 @@ def init_database(request, connection, Base):
     Base.metadata.create_all(connection)
 
     def teardown():
+        close_all_sessions()
         Base.metadata.drop_all(connection)
 
     request.addfinalizer(teardown)

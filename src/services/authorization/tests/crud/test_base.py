@@ -4,7 +4,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, close_all_sessions
 
 from app.crud.base import CRUDBase
 
@@ -23,6 +23,7 @@ def init_database(request, connection, Base, User):
     Base.metadata.create_all(connection)
 
     def teardown():
+        close_all_sessions()
         Base.metadata.drop_all(connection)
 
     request.addfinalizer(teardown)

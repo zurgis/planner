@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import Column, String
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, close_all_sessions
 
 from app.database.custom_types import CompositeType
 
@@ -28,6 +28,7 @@ class TestCompositeType:
         Base.metadata.create_all(connection)
 
         def teardown():
+            close_all_sessions()
             Base.metadata.drop_all(connection)
 
         request.addfinalizer(teardown)
@@ -38,7 +39,7 @@ class TestCompositeType:
         db.add(user)
         db.commit()
 
-        user = db.query(User).get(1)
+        user = db.query(User).filter_by(id=user.id).first()
 
         assert user.full_name.first_name == "FirstTest"
         assert user.full_name.last_name == "LastTest"
@@ -56,6 +57,6 @@ class TestCompositeType:
         db.add(user)
         db.commit()
 
-        user = db.query(User).get(2)
+        user = db.query(User).filter_by(id=user.id).first()
 
         assert user.full_name.first_name == "FirstTest"

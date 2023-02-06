@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import Column, String
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session, close_all_sessions
 
 from app import crud
 from app.crud.permission import PermissionCreate, PermissionUpdate
@@ -11,8 +11,6 @@ def Permission(Base):
     class Permission(Base):
         name = Column(String, unique=True, index=True, nullable=False)
 
-        roles = relationship("Role_Permission", back_populates="permission")
-
     return Permission
 
 
@@ -21,6 +19,7 @@ def init_database(request, connection, Base, Permission):
     Base.metadata.create_all(connection)
 
     def teardown():
+        close_all_sessions()
         Base.metadata.drop_all(connection)
 
     request.addfinalizer(teardown)
@@ -56,6 +55,22 @@ def test_get_multi(db: Session):
     assert permissions
     assert permissions[0].name == "view_users"
     assert permissions[1].name == "create_users"
+
+
+def test_get_multi_where_in(db: Session):
+    permission_in_one = PermissionCreate(name="view_users")
+    permission_in_two = PermissionCreate(name="create_users")
+
+    crud.permission.create(db, obj_in=permission_in_one)
+    crud.permission.create(db, obj_in=permission_in_two)
+
+    permissions = ["view_users", "create_users"]
+
+    permissions_db = crud.permission.get_multi_where_in(db, list_=permissions)
+
+    assert permissions_db
+    assert permissions_db[0].name in permissions
+    assert permissions_db[1].name in permissions
 
 
 def test_update(db: Session):
