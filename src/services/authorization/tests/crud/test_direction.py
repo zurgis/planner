@@ -1,6 +1,6 @@
 import pytest
 from sqlalchemy import Column, String
-from sqlalchemy.orm import Session, relationship
+from sqlalchemy.orm import Session, close_all_sessions, relationship
 
 from app import crud
 from app.crud.direction import DirectionCreate, DirectionUpdate
@@ -21,6 +21,7 @@ def init_database(request, connection, Base, Direction):
     Base.metadata.create_all(connection)
 
     def teardown():
+        close_all_sessions()
         Base.metadata.drop_all(connection)
 
     request.addfinalizer(teardown)
