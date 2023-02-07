@@ -28,6 +28,7 @@ class DropCompositeType(_CreateDropBase):
 # TODO: add filter by composite type
 # TODO: add creation of composite type in composite type
 # TODO: add checks composite type in other tables
+# FIXME: add column nullable check
 class CompositeType(UserDefinedType):
     """
     :param name:

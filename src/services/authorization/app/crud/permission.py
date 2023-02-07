@@ -17,7 +17,7 @@ class PermissionUpdate(BaseModel):
 
 
 class CRUDPermission(CRUDBase[Permission, PermissionCreate, PermissionUpdate]):
-    def get_multi_where_in(self, db: Session, *, list_: list[str]):
+    def get_multi_where_in(self, db: Session, *, list_: list[str]) -> list[Permission]:
         return db.query(self.model).where(self.model.name.in_(list_)).all()
 
 
