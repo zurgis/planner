@@ -2,7 +2,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
-
 from app.models.permission import Permission
 from app.models.role import Role
 
