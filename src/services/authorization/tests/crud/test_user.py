@@ -5,9 +5,8 @@ from sqlalchemy import Boolean, CheckConstraint, Column, ForeignKey, Integer, St
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Session, close_all_sessions, relationship
 
-from app import crud
-from app.crud.role import RoleCreate
-from app.crud.user import UserCreate, UserUpdate
+from app.crud.role import CRUDRole, RoleCreate
+from app.crud.user import CRUDUser, UserCreate, UserUpdate
 from app.database.custom_types import CompositeType
 
 
@@ -75,10 +74,20 @@ def init_database(request, connection, Base, User, Role, Direction):
     request.addfinalizer(teardown)
 
 
-def test_create(db: Session):
+@pytest.fixture
+def crud(User):
+    return CRUDUser(model=User)
+
+
+@pytest.fixture
+def crud_role(Role):
+    return CRUDRole(Role)
+
+
+def test_create(db: Session, crud: CRUDUser, crud_role: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
+    role = crud_role.create(db, obj_in=role_in)
 
     user_in = UserCreate(
         email="test@planner.planner",
@@ -87,7 +96,7 @@ def test_create(db: Session):
         role_id=role.id,
     )
 
-    user = crud.user.create(db, obj_in=user_in)
+    user = crud.create(db, obj_in=user_in)
 
     assert user.email == "test@planner.planner"
     assert user.password == "planner"
@@ -97,10 +106,10 @@ def test_create(db: Session):
     assert user.role.name == "admin"
 
 
-def test_get(db: Session):
+def test_get(db: Session, crud: CRUDUser, crud_role: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
+    role = crud_role.create(db, obj_in=role_in)
 
     user_in = UserCreate(
         email="test@planner.planner",
@@ -109,17 +118,17 @@ def test_get(db: Session):
         role_id=role.id,
     )
 
-    user = crud.user.create(db, obj_in=user_in)
-    get_user = crud.user.get(db, id=user.id)
+    user = crud.create(db, obj_in=user_in)
+    get_user = crud.get(db, id=user.id)
 
     assert get_user
     assert get_user.email == "test@planner.planner"
 
 
-def test_get_multi(db: Session):
+def test_get_multi(db: Session, crud: CRUDUser, crud_role: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
+    role = crud_role.create(db, obj_in=role_in)
 
     user_in_one = UserCreate(
         email="test@planner.planner",
@@ -134,21 +143,20 @@ def test_get_multi(db: Session):
         role_id=role.id,
     )
 
-    crud.user.create(db, obj_in=user_in_one)
-    crud.user.create(db, obj_in=user_in_two)
+    crud.create(db, obj_in=user_in_one)
+    crud.create(db, obj_in=user_in_two)
 
-    users = crud.user.get_multi(db)
+    users = crud.get_multi(db)
 
     assert users
     assert users[0].email == "test@planner.planner"
     assert users[1].email == "test_two@planner.planner"
 
 
-def test_update(db: Session):
+def test_update(db: Session, crud: CRUDUser, crud_role: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
-
+    role = crud_role.create(db, obj_in=role_in)
     user_in = UserCreate(
         email="test@planner.planner",
         password="planner",
@@ -156,20 +164,20 @@ def test_update(db: Session):
         role_id=role.id,
     )
 
-    user_db = crud.user.create(db, obj_in=user_in)
+    user_db = crud.create(db, obj_in=user_in)
 
     user_in = UserUpdate.from_orm(user_db)
     user_in.email = "update@planner.planner"
 
-    user = crud.user.update(db, db_obj=user_db, obj_in=user_in)
+    user = crud.update(db, db_obj=user_db, obj_in=user_in)
 
     assert user.email == "update@planner.planner"
 
 
-def test_remove(db: Session):
+def test_remove(db: Session, crud: CRUDUser, crud_role: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
+    role = crud_role.create(db, obj_in=role_in)
 
     user_in = UserCreate(
         email="test@planner.planner",
@@ -178,9 +186,9 @@ def test_remove(db: Session):
         role_id=role.id,
     )
 
-    user = crud.user.create(db, obj_in=user_in)
-    remove_user = crud.user.remove(db, id=user.id)
-    get_user = crud.user.get(db, id=user.id)
+    user = crud.create(db, obj_in=user_in)
+    remove_user = crud.remove(db, id=user.id)
+    get_user = crud.get(db, id=user.id)
 
     assert remove_user.id == user.id
     assert get_user is None

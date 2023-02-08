@@ -1,11 +1,11 @@
 import pytest
+from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, String
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Session, close_all_sessions, relationship
 
-from app import crud
-from app.crud.permission import PermissionCreate
-from app.crud.role import RoleCreate, RoleUpdate
+from app.crud.permission import CRUDPermission, PermissionCreate
+from app.crud.role import CRUDRole, RoleUpdate
 
 
 @pytest.fixture(scope="module")
@@ -63,31 +63,49 @@ def init_database(
     request.addfinalizer(teardown)
 
 
-def test_create(db: Session):
+@pytest.fixture
+def crud(Role):
+    return CRUDRole(model=Role)
+
+
+@pytest.fixture
+def crud_permission(Permission):
+    return CRUDPermission(Permission)
+
+
+class RoleCreate(BaseModel):
+    id: int | None
+    name: str
+    permissions: list | None
+
+
+def test_create(db: Session, crud: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
+    role = crud.create(db, obj_in=role_in)
 
     assert role.name == "admin"
 
 
-def test_create_with_permissions(db: Session):
+def test_create_with_permissions(
+    db: Session, crud: CRUDRole, crud_permission: CRUDPermission
+):
     permission_in_one = PermissionCreate(name="create_user")
     permission_in_two = PermissionCreate(name="read_user")
     permission_in_three = PermissionCreate(name="remove_user")
 
-    crud.permission.create(db, obj_in=permission_in_one)
-    crud.permission.create(db, obj_in=permission_in_two)
-    crud.permission.create(db, obj_in=permission_in_three)
+    crud_permission.create(db, obj_in=permission_in_one)
+    crud_permission.create(db, obj_in=permission_in_two)
+    crud_permission.create(db, obj_in=permission_in_three)
 
     permissions = ["create_user", "read_user", "remove_user"]
 
-    permissions_db = crud.permission.get_multi_where_in(db, list_=permissions)
+    permissions_db = crud_permission.get_multi_where_in(db, list_=permissions)
 
     role_in = RoleCreate(name="admin", permissions=permissions_db)
-    role = crud.role.create(db, obj_in=role_in)
+    role = crud.create(db, obj_in=role_in)
 
-    get_role = crud.role.get(db, id=role.id)
+    get_role = crud.get(db, id=role.id)
 
     assert get_role
     assert get_role.name == "admin"
@@ -96,49 +114,49 @@ def test_create_with_permissions(db: Session):
     assert get_role.permissions[2].name in permissions
 
 
-def test_get(db: Session):
+def test_get(db: Session, crud: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
-    get_role = crud.role.get(db, id=role.id)
+    role = crud.create(db, obj_in=role_in)
+    get_role = crud.get(db, id=role.id)
 
     assert get_role
     assert get_role.name == "admin"
 
 
-def test_get_multi(db: Session):
+def test_get_multi(db: Session, crud: CRUDRole):
     role_in_one = RoleCreate(name="admin")
     role_in_two = RoleCreate(name="user")
 
-    crud.role.create(db, obj_in=role_in_one)
-    crud.role.create(db, obj_in=role_in_two)
+    crud.create(db, obj_in=role_in_one)
+    crud.create(db, obj_in=role_in_two)
 
-    roles = crud.role.get_multi(db)
+    roles = crud.get_multi(db)
 
     assert roles
     assert roles[0].name == "admin"
     assert roles[1].name == "user"
 
 
-def test_update(db: Session):
+def test_update(db: Session, crud: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role_db = crud.role.create(db, obj_in=role_in)
+    role_db = crud.create(db, obj_in=role_in)
 
     role_in = RoleUpdate.from_orm(role_db)
     role_in.name = "user"
 
-    role = crud.role.update(db, db_obj=role_db, obj_in=role_in)
+    role = crud.update(db, db_obj=role_db, obj_in=role_in)
 
     assert role.name == "user"
 
 
-def test_remove(db: Session):
+def test_remove(db: Session, crud: CRUDRole):
     role_in = RoleCreate(name="admin")
 
-    role = crud.role.create(db, obj_in=role_in)
-    remove_role = crud.role.remove(db, id=role.id)
-    get_role = crud.role.get(db, id=role.id)
+    role = crud.create(db, obj_in=role_in)
+    remove_role = crud.remove(db, id=role.id)
+    get_role = crud.get(db, id=role.id)
 
     assert remove_role.id == role.id
     assert get_role is None
