@@ -24,11 +24,10 @@ class RoleUpdate(BaseModel):
 
 class CRUDRole(CRUDBase[Role, RoleCreate, RoleUpdate]):
     def create(self, db: Session, *, obj_in: RoleCreate) -> Role:
+        if obj_in.permissions is None:
+            del obj_in.permissions
+
         obj_in_data = obj_in.dict()
-
-        if obj_in_data["permissions"] is None:
-            del obj_in_data["permissions"]
-
         db_obj = self.model(**obj_in_data)
 
         db.add(db_obj)

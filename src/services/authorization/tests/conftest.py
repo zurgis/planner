@@ -1,7 +1,7 @@
 from collections.abc import Generator
 
 import pytest
-from sqlalchemy import Column, Integer, create_engine
+from sqlalchemy import Column, Integer, MetaData, create_engine
 from sqlalchemy.orm import (
     as_declarative,
     close_all_sessions,
@@ -28,7 +28,9 @@ def connection(engine) -> Generator:
 
 @pytest.fixture(scope="module")
 def Base():
-    @as_declarative()
+    metadata_obj = MetaData(schema="dev")
+
+    @as_declarative(metadata=metadata_obj)
     class Base:
         __name__: str
 
