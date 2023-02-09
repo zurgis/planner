@@ -8,6 +8,7 @@ from sqlalchemy.exc import InterfaceError
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import _CreateDropBase
 from sqlalchemy.sql.compiler import DDLCompiler
+from sqlalchemy.sql.sqltypes import SchemaType
 from sqlalchemy.types import UserDefinedType
 
 from app.database.connection import engine
@@ -28,8 +29,9 @@ class DropCompositeType(_CreateDropBase):
 # TODO: add filter by composite type
 # TODO: add creation of composite type in composite type
 # TODO: add checks composite type in other tables
+# TODO: add event.remove
 # FIXME: add column nullable check
-class CompositeType(UserDefinedType):
+class CompositeType(UserDefinedType, SchemaType):
     """
     :param name:
         Name of the composite type.
@@ -45,7 +47,8 @@ class CompositeType(UserDefinedType):
                 "'psycopg2' driver is required in order to use CompositeType.",
             )
 
-        self.name = name
+        SchemaType.__init__(self, name=name, inherit_schema=True)
+
         self.columns = columns
 
         event.listen(MetaData, "before_create", self.before_create)
@@ -84,7 +87,9 @@ class CompositeType(UserDefinedType):
         return process
 
     def create(self, bind: Connection, checkfirst: bool = True) -> None:
-        if checkfirst and not bind.dialect.has_type(bind, self.name):
+        if checkfirst and not bind.dialect.has_type(
+            bind, self.name, schema=self.schema
+        ):
             bind.execute(CreateCompositeType(self))
 
     def before_create(
@@ -97,13 +102,14 @@ class CompositeType(UserDefinedType):
         )
 
     def drop(self, bind: Connection, checkfirst: bool = True) -> None:
-        if checkfirst and bind.dialect.has_type(bind, self.name):
+        if checkfirst and bind.dialect.has_type(bind, self.name, schema=self.schema):
             bind.execute(DropCompositeType(self))
 
     def after_drop(
         self, target: MetaData, connection: Connection, **kwargs: dict
     ) -> None:
-        self.drop(connection)
+        if self.schema == target.schema:
+            self.drop(connection)
 
     @compiles(CreateCompositeType)
     def visit_create_composite_type(
@@ -116,10 +122,10 @@ class CompositeType(UserDefinedType):
             for column in type_.columns
         )
 
-        return f"CREATE TYPE {compiler.preparer.quote(type_.name)} AS ({fields})"
+        return f"CREATE TYPE {compiler.preparer.format_type(type_)} AS ({fields})"
 
     @compiles(DropCompositeType)
     def visit_drop_composite_type(drop, compiler: DDLCompiler, **kwargs: dict) -> str:
         type_ = drop.element
 
-        return f"DROP TYPE {compiler.preparer.quote(type_.name)}"
+        return f"DROP TYPE {compiler.preparer.format_type(type_)}"
