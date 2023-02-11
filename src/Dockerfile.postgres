@@ -1,0 +1,5 @@
+FROM postgres:14.7
+
+COPY ./scripts/init_schema.sh ./docker-entrypoint-initdb.d/init_schema.sh
+
+CMD ["docker-entrypoint.sh", "postgres"]

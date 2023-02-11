@@ -1,4 +1,4 @@
-FROM python:3.10-alpine3.16 as requirements
+FROM python:3.10-alpine3.17 as requirements
 
 WORKDIR /usr/src
 
@@ -19,9 +19,15 @@ ARG INSTALL_DEV=false
 RUN bash -c "if [ $INSTALL_DEV == true ] ; then poetry export --output requirements.txt --without-hashes --dev ; \
     else poetry export --output requirements.txt --without-hashes ; fi"
 
-FROM python:3.10-alpine3.16
+FROM python:3.10-alpine3.17
 
 WORKDIR /usr/src
+
+RUN apk add \
+        gcc \
+        musl-dev \
+        libffi-dev \
+    && rm -rf /var/cache/apk/*
 
 COPY --from=requirements /usr/src/requirements.txt .
 
