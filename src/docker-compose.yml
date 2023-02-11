@@ -16,7 +16,10 @@ services:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
   postgres:
-    image: postgres:14.5
+    image: postgres:14.7
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
     ports:
       - "5432:5432"
     environment:
