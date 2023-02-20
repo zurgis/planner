@@ -17,7 +17,9 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: planner_user
+          POSTGRES_PASSWORD: planner_password
+          POSTGRES_DB: planner_users
         volumes:
           - /src/scripts/init_schema.sh:/docker-entrypoint-initdb.d/init_schema.sh
 
