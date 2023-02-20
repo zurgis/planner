@@ -19,7 +19,7 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
         volumes:
-          - src/scripts/init_schema.sh:/docker-entrypoint-initdb.d/init_schema.sh
+          - /src/scripts/init_schema.sh:/docker-entrypoint-initdb.d/init_schema.sh
 
     steps:
       - uses: actions/checkout@v3
