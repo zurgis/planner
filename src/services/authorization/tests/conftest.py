@@ -13,7 +13,7 @@ from sqlalchemy.orm import (
 @pytest.fixture(scope="session")
 def engine():
     engine = create_engine(
-        "postgresql://planner_user:planner_password@localhost:5432/planner_users",
+        "postgresql://planner_user:planner_password@127.0.0.1:5432/planner_users",
         future=True,
     )
     # engine.echo = True
