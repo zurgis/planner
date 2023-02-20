@@ -22,6 +22,8 @@ jobs:
           POSTGRES_DB: planner_users
         volumes:
           - /src/scripts/init_schema.sh:/docker-entrypoint-initdb.d/init_schema.sh
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v3
